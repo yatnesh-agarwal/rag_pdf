@@ -40,12 +40,6 @@ npm install
 npm run dev
 ```
 
-For local development, keep:
-
-```env
-VITE_API_BASE_URL=http://localhost:3000
-```
-
 ## Public deployment
 
 The easiest setup is:
@@ -80,7 +74,6 @@ npm start
 ```env
 PORT=3000
 CORS_ORIGIN=https://your-frontend-domain.vercel.app
-CORS_ORIGIN_REGEX=^https://.*\.vercel\.app$
 PINECONE_API=your_pinecone_api_key
 PINECONE_INDEX_NAME=your_pinecone_index_name
 LLM_PROVIDER=openai
@@ -94,8 +87,6 @@ OPENAI_EMBED_MODEL=text-embedding-3-small
 ```txt
 https://your-backend.onrender.com
 ```
-
-`CORS_ORIGIN` is for your main frontend domain. `CORS_ORIGIN_REGEX` is helpful if you also want Vercel preview deployments to work without changing backend env vars every time.
 
 ### Deploy frontend
 
@@ -115,14 +106,6 @@ npm run build
 ```
 
 5. Deploy and open the Vercel URL.
-
-If you deploy both `frontend` and `backend` together through this repo's `vercel.json`, the frontend can also use the co-deployed backend route:
-
-```env
-VITE_API_BASE_URL=
-```
-
-In that case the app falls back to `/_/backend` automatically in production.
 
 ## Share by link
 

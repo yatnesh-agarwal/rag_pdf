@@ -2,8 +2,30 @@ import React, { useEffect, useRef, useState } from 'react'
 import { Copy, MoveUp, Plus, SquarePen } from 'lucide-react';
 
 const STORAGE_KEY = "pdfChatSession";
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
 const SESSION_ID_KEY = "pdfChatSessionId";
+const normalizeBaseUrl = (value) => value?.replace(/\/+$/, "") || "";
+const resolveApiBaseUrl = () => {
+  const envBaseUrl = normalizeBaseUrl(import.meta.env.VITE_API_BASE_URL);
+
+  if (typeof window === "undefined") {
+    return envBaseUrl || "";
+  }
+
+  const isLocalHost = ["localhost", "127.0.0.1"].includes(window.location.hostname);
+  const envPointsToLocalhost = /localhost|127\.0\.0\.1/.test(envBaseUrl);
+
+  if (envBaseUrl && (!envPointsToLocalhost || isLocalHost)) {
+    return envBaseUrl;
+  }
+
+  if (isLocalHost) {
+    return "http://localhost:3000";
+  }
+
+  // In production, prefer the co-deployed Vercel backend route over a broken localhost env.
+  return `${window.location.origin}/_/backend`;
+};
+const API_BASE_URL = resolveApiBaseUrl();
 
 const defaultSession = { fileName: "", isFileUploaded: false, chat: [] };
 

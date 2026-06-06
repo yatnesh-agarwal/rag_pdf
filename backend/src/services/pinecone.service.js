@@ -5,6 +5,14 @@ const pc = new Pinecone({
     apiKey: process.env.PINECONE_API
 })
 
-const index = pc.index(process.env.PINECONE_INDEX_NAME)
+const baseIndex = pc.index(process.env.PINECONE_INDEX_NAME)
 
-module.exports = index
+function getIndex(sessionId) {
+    if (!sessionId) {
+        return baseIndex
+    }
+
+    return baseIndex.namespace(sessionId)
+}
+
+module.exports = getIndex

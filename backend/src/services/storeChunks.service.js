@@ -1,7 +1,9 @@
 const createEmbedding = require("./embedding.service")
-const index = require("./pinecone.service")
+const getIndex = require("./pinecone.service")
 
-async function storeChunks(chunks,pdfName) {
+async function storeChunks(chunks, pdfName, sessionId) {
+    const index = getIndex(sessionId)
+
     for (let i = 0; i < chunks.length; i++){
         const vector = await createEmbedding(chunks[i].text)
         const safePdfName = pdfName.replace(/[^a-zA-Z0-9-_]/g, "_")

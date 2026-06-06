@@ -1,10 +1,12 @@
 const searchChunks = require("../services/userInput.service")
 const askLlm = require("../services/ollama.service")
+const { getSessionId } = require("../utils/session.util")
 
 async function askController(req,res) {
     try{
         const {question} = req.body
-        const matches = await searchChunks(question)
+        const sessionId = getSessionId(req)
+        const matches = await searchChunks(question, sessionId)
         const context = matches
         .map(match => match.metadata.text)
         .join("\n\n")

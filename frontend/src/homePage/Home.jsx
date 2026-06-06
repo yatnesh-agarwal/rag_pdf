@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from 'react'
 import { Copy, MoveUp, Plus, SquarePen } from 'lucide-react';
 
 const STORAGE_KEY = "pdfChatSession";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
+const SESSION_ID_KEY = "pdfChatSessionId";
 
 const defaultSession = { fileName: "", isFileUploaded: false, chat: [] };
 
@@ -15,8 +17,21 @@ const getSavedSession = () => {
     return defaultSession;
   }
 };
+
+const getSessionId = () => {
+  if (typeof window === "undefined") return "server-session";
+
+  const existing = window.localStorage.getItem(SESSION_ID_KEY);
+  if (existing) return existing;
+
+  const next = window.crypto?.randomUUID?.() || `session-${Date.now()}`;
+  window.localStorage.setItem(SESSION_ID_KEY, next);
+  return next;
+};
+
 const Home = () => {
   const [savedSession] = useState(() => getSavedSession());
+  const sessionIdRef = useRef(getSessionId());
   const fileInputRef = useRef(null)
   const bottomRef = useRef(null)
   const [fileName, setFileName] = useState(savedSession.fileName);
@@ -65,8 +80,11 @@ const Home = () => {
       files.forEach((selectedFile) => {
         formData.append("pdf", selectedFile)
       })
-      const response = await fetch("http://localhost:3000/api/uploadPDF", {
+      const response = await fetch(`${API_BASE_URL}/api/uploadPDF`, {
         method: "POST",
+        headers: {
+          "x-session-id": sessionIdRef.current,
+        },
         body: formData,
       })
 
@@ -119,10 +137,11 @@ const Home = () => {
 
     try {
       setIsLoading(true)
-      const getData = await fetch("http://localhost:3000/api/ask", {
+      const getData = await fetch(`${API_BASE_URL}/api/ask`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "x-session-id": sessionIdRef.current,
         },
         body: JSON.stringify({
           question: currentQuestion,
@@ -154,8 +173,11 @@ const Home = () => {
 
   const handleNewChat = async () => {
     try {
-      await fetch("http://localhost:3000/api/clear-chat", {
+      await fetch(`${API_BASE_URL}/api/clear-chat`, {
         method: "DELETE",
+        headers: {
+          "x-session-id": sessionIdRef.current,
+        },
       });
     } catch (err) {
       console.log("Error while clearing chat", err);

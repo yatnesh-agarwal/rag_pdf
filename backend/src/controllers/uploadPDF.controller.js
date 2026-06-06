@@ -1,9 +1,11 @@
 const chunkText = require("../services/chunkText.service")
 const parsePDF = require("../services/parsePDF.service")
 const storeChunks = require("../services/storeChunks.service")
+const { getSessionId } = require("../utils/session.util")
 
 async function uploadPDFController(req,res) {
     try{
+        const sessionId = getSessionId(req)
         const files = req.files?.length ? req.files : req.file ? [req.file] : []
 
         if (!files.length) {
@@ -17,7 +19,7 @@ async function uploadPDFController(req,res) {
             const chunks = chunkText(pages)
 
             console.log(`Total Chunks for ${file.originalname}:`, chunks.length)
-            await storeChunks(chunks, file.originalname)
+            await storeChunks(chunks, file.originalname, sessionId)
         }
 
         return res.status(200).json({

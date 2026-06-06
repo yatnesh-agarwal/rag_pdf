@@ -23,9 +23,11 @@ frontend/dist-ssr/
 .env
 .env.*
 !.env.example
+!frontend/.env.example
 backend/.env
 frontend/.env
 frontend/.env.*
+!frontend/.env.example
 
 # Local app data
 backend/uploads/
@@ -48,3 +50,4 @@ coverage/
 
 # Misc local files
 *.local
+.vercel

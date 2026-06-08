@@ -1,59 +1,66 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { Copy, MoveUp, Plus, SquarePen } from 'lucide-react';
 
-const STORAGE_KEY = "pdfChatSession";
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-const SESSION_ID_KEY = "pdfChatSessionId";
+const STORAGE_KEY = "pdfChatSession"
+const SESSION_ID_KEY = "pdfChatSessionId"
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || ""
 
-const defaultSession = { fileName: "", isFileUploaded: false, chat: [] };
+const defaultSession = { uploadedFiles: [], isFileUploaded: false, chat: [] }
 
 const getSavedSession = () => {
-  if (typeof window === "undefined") return defaultSession;
+  if (typeof window === "undefined") return defaultSession
 
   try {
-    const saved = JSON.parse(localStorage.getItem("pdfChatSession"));
-    return { ...defaultSession, ...saved };
+    const saved = JSON.parse(localStorage.getItem("pdfChatSession"))
+    return { ...defaultSession, ...saved }
   } catch {
-    return defaultSession;
+    return defaultSession
   }
 };
 
 const getSessionId = () => {
-  if (typeof window === "undefined") return "server-session";
+  if (typeof window === "undefined") return "server-session"
 
-  const existing = window.localStorage.getItem(SESSION_ID_KEY);
-  if (existing) return existing;
+  const existing = window.localStorage.getItem(SESSION_ID_KEY)
+  if (existing) return existing
 
-  const next = window.crypto?.randomUUID?.() || `session-${Date.now()}`;
-  window.localStorage.setItem(SESSION_ID_KEY, next);
-  return next;
+  const next = window.crypto?.randomUUID?.() || `session-${Date.now()}`
+  window.localStorage.setItem(SESSION_ID_KEY, next)
+  return next
 };
 
-const Home = () => {
-  const [savedSession] = useState(() => getSavedSession());
-  const sessionIdRef = useRef(getSessionId());
+const createNewSessionId = () => {
+  if (typeof window === "undefined") return "server-session"
+
+  const next = window.crypto?.randomUUID?.() || `session-${Date.now()}`
+  window.localStorage.setItem(SESSION_ID_KEY, next)
+  return next
+}
+
+  const Home = () => {
+  const [savedSession] = useState(() => getSavedSession())
+  const sessionIdRef = useRef(getSessionId())
   const fileInputRef = useRef(null)
   const bottomRef = useRef(null)
-  const [fileName, setFileName] = useState(savedSession.fileName);
-  const [files, setFiles] = React.useState([]);
-  const [isFileUploaded, setIsFileUploaded] = React.useState(savedSession.isFileUploaded);
-  const [question, setQuestion] = React.useState("");
-  const [chat, setChat] = React.useState(savedSession.chat);
-  const [isLoading, setIsLoading] = React.useState(false);
-  const [error, setError] = React.useState("");
-  const [uploadStatus, setUploadStatus] = React.useState("idle");
-  const [copiedMessageIndex, setCopiedMessageIndex] = React.useState(null);
+  const [uploadedFiles, setUploadedFiles] = useState(Array.isArray(savedSession.uploadedFiles) ? savedSession.uploadedFiles : [])
+  const [isFileUploaded, setIsFileUploaded] = React.useState(savedSession.isFileUploaded)
+  const [question, setQuestion] = React.useState("")
+  const [chat, setChat] = React.useState(savedSession.chat)
+  const [isLoading, setIsLoading] = React.useState(false)
+  const [error, setError] = React.useState("")
+  const [uploadStatus, setUploadStatus] = React.useState("idle")
+  const [copiedMessageIndex, setCopiedMessageIndex] = React.useState(null)
 
   useEffect(()=>{
     window.localStorage.setItem(
       STORAGE_KEY,
       JSON.stringify({
-        fileName,
+        uploadedFiles,
         isFileUploaded,
         chat,
       })
     );
-  },[chat, fileName, isFileUploaded])
+  },[chat, uploadedFiles, isFileUploaded])
   
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -65,11 +72,11 @@ const Home = () => {
   const userInputQuestion = (e) => {
     setQuestion(e)
   }
-  const uploadPDF = async () => {
+  const uploadPDF = async (selectedFiles) => {
     setError("")
 
-    if (!files.length){
-      alert("Attach a file")
+    if (!selectedFiles?.length){
+      setError("Attach at least one PDF first.")
       return
     }
 
@@ -77,7 +84,7 @@ const Home = () => {
       setIsLoading(true)
       setUploadStatus("uploading")
       const formData = new FormData()
-      files.forEach((selectedFile) => {
+      selectedFiles.forEach((selectedFile) => {
         formData.append("pdf", selectedFile)
       })
       const response = await fetch(`${API_BASE_URL}/api/uploadPDF`, {
@@ -92,12 +99,21 @@ const Home = () => {
         throw new Error("PDF upload failed")
       }
 
+      const data = await response.json()
+      const nextUploadedFiles = Array.isArray(data.uploadedFiles)
+        ? data.uploadedFiles
+        : selectedFiles.map((selectedFile) => ({
+            fileName: selectedFile.name,
+          }))
+
+      setUploadedFiles((prev) => [...prev, ...nextUploadedFiles])
       setIsFileUploaded(true)
       setUploadStatus("done")
-      setChat([
+      setChat((prev) => [
+        ...prev,
         {
           role: "assistant",
-          message: `PDF uploaded successfully. You can now ask questions from ${files.map((selectedFile) => selectedFile.name).join(", ")}.`,
+          message: `PDF uploaded successfully. You can now ask questions from ${nextUploadedFiles.map((file) => file.fileName).join(", ")}.`,
           references: []
         }
       ])
@@ -115,10 +131,10 @@ const Home = () => {
     setError("")
 
     if (!isFileUploaded){
-      await uploadPDF()
+      setError("Upload at least one PDF before asking a question.")
       return
     }
-
+    
     if (!question.trim()) {
       setError("Enter a question first.")
       return
@@ -183,13 +199,14 @@ const Home = () => {
       console.log("Error while clearing chat", err);
     }
 
-    setFiles([])
-    setFileName("")
+    setUploadedFiles([])
     setChat([])
     setIsFileUploaded(false)
     setQuestion("")
     setError("")
     setUploadStatus("idle")
+    window.localStorage.removeItem(STORAGE_KEY)
+    sessionIdRef.current = createNewSessionId()
     if (fileInputRef.current) {
       fileInputRef.current.value = null;
     }
@@ -338,6 +355,7 @@ const Home = () => {
                 <button
                   type="button"
                   onClick={uploadBtn}
+                  disabled={isLoading}
                   className="flex h-12 w-12 shrink-0 items-center justify-center rounded-4xl bg-transparent transition hover:bg-white/6"
                 >
                   <Plus color='white' size={20} />
@@ -345,14 +363,9 @@ const Home = () => {
                 <input accept='.pdf' type="file" multiple ref={fileInputRef} hidden onChange={(e) => {
                     const selectedFiles = Array.from(e.target.files || []);
                     if (selectedFiles.length) {
-                      setFiles(selectedFiles);
-                      setFileName(selectedFiles.map((selectedFile) => selectedFile.name).join(", "));
-                      setIsFileUploaded(false);
-                      setUploadStatus("idle");
-                      setQuestion("");
-                      setChat([]);
-                      setError("");
+                      uploadPDF(selectedFiles)
                     }
+                    e.target.value = null
                   }} />
                 <div className="min-w-0 flex-1">
                   <textarea
@@ -366,19 +379,19 @@ const Home = () => {
                     type="text"
                     value={question}
                     disabled={!isFileUploaded || isLoading}
-                    placeholder={isFileUploaded ? "Ask anything from your PDF" : "Upload your PDF first to unlock chat"}
+                    placeholder={isFileUploaded ? "Ask anything from your PDFs" : "Upload your PDF first to unlock chat"}
                     className="w-full bg-transparent px-2 py-3 text-base text-white outline-none placeholder:text-white/45 disabled:cursor-not-allowed disabled:text-white/35"
                   />
                   <div className="flex items-center justify-between px-2 pb-1">
                     <p className="truncate text-xs bg-blue-500 p-2 rounded text-white">
                       {isFileUploaded
-                        ? `PDF uploaded: ${fileName}`
+                        ? `PDFs attached: ${uploadedFiles.map((file) => file.fileName).join(", ")}`
                         : uploadStatus === "uploading"
                         ? "Uploading and preparing PDF..."
-                        : fileName || "Choose a PDF, then click send to upload it"}
+                        : "Choose a PDF to attach to this conversation"}
                     </p>
                     <p className="text-xs text-blue-200/80">
-                      {!isFileUploaded ? "Locked" : "Ready"}
+                      {!isFileUploaded ? "Locked" : `${uploadedFiles.length} attached`}
                     </p>
                   </div>
                 </div>

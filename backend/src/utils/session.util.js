@@ -9,6 +9,4 @@ function getSessionId(req) {
     return trimmed || null
 }
 
-module.exports = {
-    getSessionId,
-}
+module.exports = {getSessionId}

@@ -7,9 +7,12 @@ async function searchChunks(question, sessionId) {
     const index = getIndex(sessionId)
     const results = await index.query({
         vector: queryVector,
-        topK: 3,
+        topK: 15,
         includeMetadata: true
     })
+    console.log(
+  results.matches.map(match => match.metadata?.pdfName)
+)
     return results.matches
 }
 

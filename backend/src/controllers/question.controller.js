@@ -1,5 +1,5 @@
 const searchChunks = require("../services/userInput.service")
-const askLlm = require("../services/ollama.service")
+const askLlm = require("../services/llm.service")
 const { getSessionId } = require("../utils/session.util")
 
 async function askController(req,res) {
@@ -17,6 +17,7 @@ async function askController(req,res) {
             references: matches.map(match => ({
                 id: match.id,
                 documentName: match.metadata?.pdfName || "Unknown document",
+                documentId: match.metadata?.documentId || null,
                 excerpt: match.metadata?.text?.slice(0, 180) || "",
                 score: match.score,
                 section: match.metadata?.section || null,

@@ -19,7 +19,7 @@ app.use(cors({
     allowedHeaders: ["Content-Type", "x-session-id"],
 }));
 
-app.use("/api/",uploadPDF)
+app.use("/api",uploadPDF)
 app.use("/api",askQuestion)
 app.use("/api",clearChat)
 

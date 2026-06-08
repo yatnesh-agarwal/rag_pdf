@@ -3,7 +3,8 @@ import { Copy, MoveUp, Plus, SquarePen } from 'lucide-react';
 
 const STORAGE_KEY = "pdfChatSession"
 const SESSION_ID_KEY = "pdfChatSessionId"
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || ""
+
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "")
 
 const defaultSession = { uploadedFiles: [], isFileUploaded: false, chat: [] }
 
